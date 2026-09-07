@@ -79,3 +79,15 @@ def split_documents(
             split_text(document.text, chunk_size=chunk_size, overlap=overlap)
         )
     ]
+
+
+def covers(text: str, item: str, *, ratio: float = 0.6) -> bool:
+    """True when most of `item`'s terms appear in `text`.
+
+    Used both to decide what the customer still needs to ask about and to score
+    checklist coverage afterwards, so the two always agree.
+    """
+    terms = {term for term in tokenize(item) if len(term) > 1}
+    if not terms:
+        return item in text
+    return len(terms & set(tokenize(text))) / len(terms) >= ratio

@@ -11,7 +11,7 @@ from typing import Any
 
 from ..config import settings
 from ..rag.loader import load_json
-from ..rag.splitter import tokenize
+from ..rag.splitter import covers
 from .persona import Scenario
 from .session import agent_turns
 
@@ -42,18 +42,11 @@ def _clamp(value: float) -> int:
     return max(1, min(5, round(value)))
 
 
-def _covers(text: str, item: str) -> bool:
-    terms = {term for term in tokenize(item) if len(term) > 1}
-    if not terms:
-        return item in text
-    return len(terms & set(tokenize(text))) / len(terms) >= 0.6
-
-
 def _score_coverage(transcript: str, scenario: Scenario) -> tuple[int, str]:
     items = scenario.must_cover
     if not items:
         return 3, "このシナリオには必須説明項目が設定されていません。"
-    covered = [item for item in items if _covers(transcript, item)]
+    covered = [item for item in items if covers(transcript, item)]
     missing = [item for item in items if item not in covered]
     score = _clamp(1 + 4 * len(covered) / len(items))
     if not missing:

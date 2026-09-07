@@ -141,9 +141,9 @@ def scenario():
             description="要点を早く知りたい",
             tone="早口",
             hidden_context="送信履歴を見ていない",
+            style="hurried",
         ),
         opening="リマインドが届いていないようです。",
         must_cover=["迷惑メールフォルダを確認", "送信履歴を確認"],
         reference_hint="faq.md",
-        scripted_replies=["他に見るところはありますか。", "分かりました。"],
     )

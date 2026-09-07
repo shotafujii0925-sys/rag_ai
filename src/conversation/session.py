@@ -12,7 +12,7 @@ from typing import Any
 from ..config import settings
 from ..rag.generator import build_context
 from ..rag.retriever import Retriever
-from .persona import Scenario, generate_reply, scripted_reply
+from .persona import Scenario, generate_reply, local_reply
 
 AGENT = "agent"
 CUSTOMER = "customer"
@@ -74,7 +74,7 @@ def add_turn(
     if settings().is_cloud:
         reply = generate_reply(scenario, session["transcript"], build_context(result.passages))
     else:
-        reply = scripted_reply(scenario, len(agent_turns(session)) - 1)
+        reply = local_reply(scenario, agent_turns(session), text)
 
     session["transcript"].append({"role": CUSTOMER, "content": reply})
     return reply

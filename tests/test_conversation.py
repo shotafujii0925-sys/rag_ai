@@ -4,11 +4,15 @@ import pytest
 
 from src.config import ConfigError
 from src.conversation.persona import (
-    CLOSING_REPLY,
+    REPLIES,
+    asked_question,
+    choose_reaction,
     find_scenario,
     generate_reply,
+    has_guess,
     load_scenarios,
-    scripted_reply,
+    local_reply,
+    uncovered,
 )
 from src.conversation.scoring import evaluate, load_criteria, score_with_model
 from src.conversation.session import (
@@ -34,7 +38,7 @@ def test_every_scenario_has_required_fields():
         assert scenario.opening
         assert scenario.must_cover
         assert scenario.persona.name
-        assert scenario.scripted_replies, f"{scenario.id} にローカル用の台本がありません"
+        assert scenario.persona.style in REPLIES, f"{scenario.id} の style が未定義です"
 
 
 def test_find_scenario_returns_the_match():
@@ -61,9 +65,85 @@ def test_scenario_missing_a_field_is_rejected(tmp_path):
         load_scenarios(path)
 
 
-def test_scripted_reply_follows_the_script(scenario):
-    assert scripted_reply(scenario, 0) == scenario.scripted_replies[0]
-    assert scripted_reply(scenario, 99) == CLOSING_REPLY
+def test_unknown_persona_style_is_rejected(tmp_path):
+    path = tmp_path / "scenarios.json"
+    path.write_text(
+        '{"scenarios":[{"id":"a","category":"c","title":"t","opening":"o",'
+        '"persona":{"style":"bogus"}}]}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="style"):
+        load_scenarios(path)
+
+
+# --- ローカルモードの顧客役 ---------------------------------------------------
+
+
+def test_has_guess_detects_hedging():
+    assert has_guess("たぶん設定の問題です")
+    assert has_guess("そのはずです")
+    assert not has_guess("設定画面で確認できます")
+
+
+def test_asked_question_detects_a_confirming_question():
+    assert asked_question("いつ頃から発生していますか")
+    assert asked_question("再現しますか？")
+    assert not asked_question("設定を開いてください")
+
+
+def test_uncovered_lists_what_is_still_missing(scenario):
+    assert uncovered(scenario, "") == scenario.must_cover
+    assert "迷惑メールフォルダを確認" not in uncovered(
+        scenario, "迷惑メールフォルダを確認してください"
+    )
+
+
+def test_reaction_presses_on_a_guess(scenario):
+    assert choose_reaction(scenario, ["たぶん設定です"], "たぶん設定です") == "guess"
+
+
+def test_reaction_asks_about_an_uncovered_requirement(scenario):
+    assert choose_reaction(scenario, ["確認します"], "確認します") == "missing"
+
+
+def test_reaction_complains_when_nothing_was_asked(scenario):
+    covered = "迷惑メールフォルダを確認し、送信履歴を確認してください。"
+    assert choose_reaction(scenario, [covered], covered) == "no_question"
+
+
+def test_reaction_deepens_after_a_single_thorough_turn(scenario):
+    covered = "迷惑メールフォルダを確認し、送信履歴を確認しますか。"
+    assert choose_reaction(scenario, [covered], covered) == "deepen"
+
+
+def test_reaction_closes_once_everything_is_handled(scenario):
+    covered = "迷惑メールフォルダを確認し、送信履歴を確認しますか。"
+    assert choose_reaction(scenario, [covered, "他にありますか"], covered) == "closing"
+
+
+def test_hard_scenarios_push_before_closing():
+    hard = next(s for s in load_scenarios() if s.difficulty == "難しい")
+    everything = " ".join(hard.must_cover) + " いかがですか"
+    assert choose_reaction(hard, [everything, "他には"], everything) == "push"
+
+
+def test_local_reply_names_the_missing_requirement(scenario):
+    reply = local_reply(scenario, ["確認します"], "確認します")
+    assert scenario.must_cover[0] in reply
+
+
+def test_local_reply_wording_follows_the_persona_style():
+    scenarios = {s.persona.style: s for s in load_scenarios()}
+    angry = local_reply(scenarios["angry"], ["たぶん大丈夫です"], "たぶん大丈夫です")
+    anxious = local_reply(scenarios["anxious"], ["たぶん大丈夫です"], "たぶん大丈夫です")
+    assert angry != anxious
+    assert "責任" in angry
+
+
+def test_local_reply_is_deterministic(scenario):
+    first = local_reply(scenario, ["確認します"], "確認します")
+    second = local_reply(scenario, ["確認します"], "確認します")
+    assert first == second
 
 
 def test_generate_reply_requires_cloud_mode(scenario):
@@ -140,6 +220,16 @@ def test_local_mode_never_calls_the_model(scenario, retriever, fake_llm):
     session = start_session(scenario)
     add_turn(session, "確認します。", scenario, retriever)
     assert fake.calls == []
+
+
+def test_local_mode_reply_reacts_to_the_message(scenario, retriever):
+    guessed = start_session(scenario)
+    add_turn(guessed, "たぶん設定の問題だと思います。", scenario, retriever)
+
+    asked = start_session(scenario)
+    add_turn(asked, "確認します。", scenario, retriever)
+
+    assert guessed["transcript"][-1]["content"] != asked["transcript"][-1]["content"]
 
 
 # --- 評価 ---------------------------------------------------------------------
