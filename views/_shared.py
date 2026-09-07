@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from src.config import ConfigError, cloud_requested_but_unavailable, settings
+from src.config import ConfigError, cloud_requested_but_unavailable, set_session_api_key, settings
 from src.conversation.persona import load_scenarios
 from src.conversation.scoring import load_criteria
 from src.errors import log_error, safe_message
@@ -70,6 +70,9 @@ def setup(kicker: str, title: str, lede: str = "") -> None:
 
 
 def render_sidebar() -> None:
+    # このセッションで直前に入力されたキーを、他の設定読み込みより先に反映する。
+    # セッションをまたいで共有されない contextvar に置くだけで、.env やディスクは触らない。
+    set_session_api_key(st.session_state.get("session_api_key"))
     config = settings()
     with st.sidebar:
         st.markdown("### ミナモ サポート研修AI")
@@ -80,8 +83,30 @@ def render_sidebar() -> None:
         else:
             st.markdown('<span class="pill pill-local">ローカルモード</span>', unsafe_allow_html=True)
             st.caption("外部APIを呼ばずに動作しています")
-        if cloud_requested_but_unavailable():
+        if not config.is_cloud and cloud_requested_but_unavailable():
             st.warning("APP_MODE=cloud が指定されていますが、OPENAI_API_KEY が未設定のためローカルモードで動作しています。")
+
+        with st.expander("🔑 自分のAPIキーで試す", expanded=False):
+            st.caption(
+                "入力したキーはこのブラウザセッション内だけで保持され、"
+                "`.env` やディスクには一切書き込まれません。"
+                "タブを閉じる・再読み込みすると失われます。"
+            )
+            st.text_input(
+                "OpenAI APIキー",
+                type="password",
+                key="session_api_key",
+                placeholder="sk-...",
+                help="入力するとこのセッションだけクラウドモードで動作します。空にすると解除されます。",
+            )
+            if st.session_state.get("session_api_key"):
+                st.caption("✓ このセッションはクラウドモードで動作しています。")
+            st.caption(
+                "使い切りや利用上限を設定したキーの使用を推奨します。"
+                "共有環境でこのアプリを動かしている場合、検索用の埋め込みは"
+                "最初にクラウドモードで検索した人のキーで計算され、"
+                "以降の利用者と共有されることがあります。"
+            )
 
 
 def show_error(message: str, error: Exception | None = None) -> None:
@@ -94,8 +119,16 @@ def show_error(message: str, error: Exception | None = None) -> None:
 
 
 @st.cache_resource(show_spinner=False)
-def get_retriever() -> Retriever:
-    return Retriever(load_knowledge())
+def get_retriever(use_embeddings: bool) -> Retriever:
+    """Cached per mode, not globally.
+
+    A UI-entered key can turn one session's requests cloud while another
+    session in the same process stays local. Keying the cache on the mode
+    keeps whichever session builds the index first from freezing that choice
+    for everyone — otherwise a session with a key could still get a
+    BM25-only retriever cached by an earlier, keyless visitor.
+    """
+    return Retriever(load_knowledge(), use_embeddings=use_embeddings)
 
 
 @st.cache_data(show_spinner=False)
@@ -111,7 +144,7 @@ def get_criteria():
 def load_resources():
     """Load knowledge, scenarios and criteria, reporting failures safely."""
     try:
-        return get_retriever(), get_scenarios(), get_criteria()
+        return get_retriever(settings().is_cloud), get_scenarios(), get_criteria()
     except (ConfigError, ValueError, FileNotFoundError) as error:
         show_error("データの読み込みに失敗しました。", error)
         st.stop()

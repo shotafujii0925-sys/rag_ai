@@ -1,5 +1,7 @@
 """設定の読み込みと検証。"""
 
+import os
+
 import pytest
 
 from src import config
@@ -87,3 +89,53 @@ def test_require_cloud_raises_in_local_mode():
 
 def test_require_cloud_passes_in_cloud_mode(cloud_mode):
     cloud_mode.require_cloud()
+
+
+# --- UI から入力されるセッション単位のキー -----------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _clear_session_key():
+    """念のため、各テストの前後で contextvar を空にしておく。"""
+    config.set_session_api_key(None)
+    yield
+    config.set_session_api_key(None)
+
+
+def test_session_key_switches_to_cloud_mode_without_touching_env():
+    config.set_session_api_key("sk-session-only")
+    current = settings()
+    assert current.is_cloud is True
+    assert current.api_key == "sk-session-only"
+    assert not (os.environ.get("OPENAI_API_KEY") or "")
+
+
+def test_session_key_overrides_env_mode_even_when_env_says_local(monkeypatch):
+    reload(monkeypatch, APP_MODE="local")
+    config.set_session_api_key("sk-from-ui")
+    assert settings().mode == CLOUD
+
+
+def test_clearing_the_session_key_falls_back_to_env_settings(monkeypatch):
+    reload(monkeypatch, APP_MODE="local")
+    config.set_session_api_key("sk-temporary")
+    config.set_session_api_key(None)
+    assert settings().mode == LOCAL
+
+
+def test_blank_session_key_is_treated_as_no_override():
+    config.set_session_api_key("   ")
+    assert settings().mode == LOCAL
+
+
+def test_session_key_does_not_change_other_settings(monkeypatch):
+    reload(monkeypatch, CHUNK_SIZE="900", TOP_K="7")
+    config.set_session_api_key("sk-session-only")
+    current = settings()
+    assert (current.chunk_size, current.top_k) == (900, 7)
+
+
+def test_settings_cache_clear_still_works_after_the_refactor(monkeypatch):
+    monkeypatch.setenv("TOP_K", "9")
+    settings.cache_clear()
+    assert settings().top_k == 9

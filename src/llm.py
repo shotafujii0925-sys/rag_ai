@@ -12,18 +12,23 @@ from typing import Any
 from .config import ConfigError, settings
 
 
-@lru_cache(maxsize=1)
-def _client() -> Any:
+@lru_cache(maxsize=8)
+def _client_for(api_key: str, base_url: str | None, timeout: int, max_retries: int) -> Any:
+    """Cached per (key, endpoint, ...), not globally.
+
+    A UI-entered key can differ between concurrent sessions in the same process;
+    caching by its value keeps one visitor's client from being reused — and
+    billed — for another visitor's requests.
+    """
     from openai import OpenAI
 
+    return OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=max_retries)
+
+
+def _client() -> Any:
     config = settings()
     config.require_cloud()
-    return OpenAI(
-        api_key=config.api_key,
-        base_url=config.base_url,
-        timeout=config.timeout_seconds,
-        max_retries=config.max_retries,
-    )
+    return _client_for(config.api_key, config.base_url, config.timeout_seconds, config.max_retries)
 
 
 def chat(system: str, user: str, *, json_mode: bool = False, temperature: float | None = None) -> str:

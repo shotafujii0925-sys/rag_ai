@@ -1,7 +1,12 @@
-"""Settings. Everything tunable comes from the environment, nothing is hardcoded."""
+"""Settings. Everything tunable comes from the environment, nothing is hardcoded.
+
+The one exception is a key entered in the UI for the current browser session
+(see `set_session_api_key`) — it never touches `os.environ`, `.env`, or disk.
+"""
 
 import os
-from dataclasses import dataclass
+from contextvars import ContextVar
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 
@@ -81,7 +86,7 @@ class Settings:
 
 
 @lru_cache(maxsize=1)
-def settings() -> Settings:
+def _env_settings() -> Settings:
     api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
     requested = (os.getenv("APP_MODE") or LOCAL).strip().lower()
     if requested not in {LOCAL, CLOUD}:
@@ -110,6 +115,39 @@ def settings() -> Settings:
         score_threshold=_float("SCORE_THRESHOLD", 0.15, minimum=0.0, maximum=1.0),
         max_upload_mb=_int("MAX_UPLOAD_MB", 5, minimum=1, maximum=50),
     )
+
+
+# UI から入力されたキーは、ブラウザセッション単位の contextvar にだけ置く。
+# Streamlit は1プロセスで複数人のセッションを同時に処理できるため、これを
+# os.environ やモジュール変数のような共有領域に置くと、ある訪問者のキーで
+# 別の訪問者のリクエストが動いてしまう。contextvar ならセッションごとの
+# 実行系列に閉じるので、その混線が起きない。
+_session_api_key: ContextVar[str | None] = ContextVar("session_api_key", default=None)
+
+
+def set_session_api_key(key: str | None) -> None:
+    """Register a UI-entered key for the current session only.
+
+    Call this once near the top of every script run (see
+    `views/_shared.render_sidebar`), before any code reads `settings()`.
+    Never written to `.env`, disk, or a log — held in memory for this session only
+    and discarded when the browser tab closes.
+    """
+    _session_api_key.set((key or "").strip() or None)
+
+
+def settings() -> Settings:
+    base = _env_settings()
+    override = _session_api_key.get()
+    if override is None:
+        return base
+    # UI にキーが入っている間は、.env の APP_MODE に関わらずクラウド機能を有効にする。
+    return replace(base, api_key=override, mode=CLOUD)
+
+
+# 既存の呼び出し側・テストが `settings.cache_clear()` で環境変数の再読み込みを
+# 促せるように、内部でキャッシュしている関数のクリアをそのまま委譲する。
+settings.cache_clear = _env_settings.cache_clear
 
 
 def cloud_requested_but_unavailable() -> bool:
