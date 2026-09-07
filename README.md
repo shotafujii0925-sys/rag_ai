@@ -74,19 +74,19 @@ pip install -r requirements.txt && streamlit run app.py
 
 ```mermaid
 flowchart TB
-    U["利用者（担当者役）"] --> APP["app.py / views/<br/>Streamlit UI"]
+    U["利用者（担当者役）"] --> APP["app.py / views/<br>Streamlit UI"]
 
-    APP --> CONV["src/conversation/<br/>persona・session・scoring"]
-    APP --> RAG["src/rag/<br/>loader・splitter・retriever<br/>generator・evaluator"]
+    APP --> CONV["src/conversation/<br>persona・session・scoring"]
+    APP --> RAG["src/rag/<br>loader・splitter・retriever<br>generator・evaluator"]
 
-    RAG --> DATA[("data/<br/>public_faq.md<br/>support_manual.md")]
-    CONV --> SCEN[("data/<br/>scenarios.json<br/>evaluation_criteria.json")]
+    RAG --> DATA[("data/<br>public_faq.md<br>support_manual.md")]
+    CONV --> SCEN[("data/<br>scenarios.json<br>evaluation_criteria.json")]
 
-    RAG -. "cloud モードのみ" .-> LLM["src/llm.py<br/>OpenAI互換API"]
-    CONV -. "cloud モードのみ" .-> LLM
+    RAG -.->|cloud モードのみ| LLM["src/llm.py<br>OpenAI互換API"]
+    CONV -.->|cloud モードのみ| LLM
 
     SCRIPT["scripts/run_rag_eval.py"] --> RAG
-    SCRIPT --> EVALSET[("data/eval/<br/>rag_eval_set.json")]
+    SCRIPT --> EVALSET[("data/eval/<br>rag_eval_set.json")]
 ```
 
 `src/` は Streamlit を import しません。UIを差し替えても、CLIからも、テストからも同じコードが動きます。
@@ -103,18 +103,18 @@ sequenceDiagram
 
     U->>S: 応対を送信
     S->>S: 入力検証（空・長さ上限）
-    S->>R: retrieve(シナリオ + 発話)
+    S->>R: retrieve（シナリオ + 発話）
     R->>R: BM25（文字バイグラム）
     opt cloud モード
-        R->>L: embed(query)
+        R->>L: embed（query）
         L-->>R: ベクトル
         R->>R: 0.6×意味 + 0.4×語彙 で合成
     end
-    R-->>S: Passage[]（source, score, excerpt）
+    R-->>S: Passage（source・score・excerpt）
     S->>S: retrieval_log に記録
     alt cloud モード
         S->>G: 顧客役プロンプトを構築
-        G->>L: chat(system, user)
+        G->>L: chat（system・user）
         L-->>G: 顧客の発話
     else local モード
         S->>S: シナリオの台本から次の発話を再生
