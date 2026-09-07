@@ -1,0 +1,17 @@
+[theme]
+base = "light"
+primaryColor = "#0f6e63"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f2f5f6"
+textColor = "#1a1d21"
+
+[client]
+# 例外の詳細（ファイルパス等）を画面に出さない。
+# 開発中は STREAMLIT_CLIENT_SHOW_ERROR_DETAILS=full を環境変数で指定する。
+showErrorDetails = "none"
+
+[server]
+maxUploadSize = 5
+
+[browser]
+gatherUsageStats = false

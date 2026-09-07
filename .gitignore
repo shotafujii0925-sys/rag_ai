@@ -1,0 +1,34 @@
+# 秘密情報
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ログ・一時ファイル
+*.log
+tmp/
+*.tmp
+
+# 評価の実行結果（環境依存。引用するものだけ手動でコミットする）
+experiments/
+
+# 利用者がアップロードした非公開文書
+data/uploads/
+
+# エディタ・OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

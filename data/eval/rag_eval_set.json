@@ -1,0 +1,145 @@
+{
+  "_note": "RAG評価用データセット。すべて公開用の架空データ（data/public_faq.md, data/support_manual.md）に対する質問。ground_truth は採点用の想定回答で、Context Recall の判定に使う。",
+  "cases": [
+    {
+      "id": "faq-plan-01",
+      "question": "スタンダードプランではスタッフを何人まで登録できますか",
+      "source": "public_faq.md",
+      "must_contain": "スタンダード",
+      "ground_truth": "スタンダードプランのスタッフ枠は5名です。"
+    },
+    {
+      "id": "faq-plan-02",
+      "question": "月の途中で上位プランに変更した場合、料金はどうなりますか",
+      "source": "public_faq.md",
+      "must_contain": "日割り",
+      "ground_truth": "上位プランへの変更は即時反映され、差額は日割りで当月の請求に加算されます。"
+    },
+    {
+      "id": "faq-plan-03",
+      "question": "下位プランに変更したとき当月分は返金されますか",
+      "source": "public_faq.md",
+      "must_contain": "次回請求日",
+      "ground_truth": "下位プランへの変更は次回請求日から反映され、当月分の返金はありません。"
+    },
+    {
+      "id": "faq-trial-01",
+      "question": "無料トライアルの期間と、終了後に自動課金されるかを教えてください",
+      "source": "public_faq.md",
+      "must_contain": "14日間",
+      "ground_truth": "無料トライアルは14日間で、クレジットカードの登録が不要なため期間終了時に自動課金されることはありません。"
+    },
+    {
+      "id": "faq-url-01",
+      "question": "予約ページのURLはどこで確認できますか",
+      "source": "public_faq.md",
+      "must_contain": "設定 > 予約ページ",
+      "ground_truth": "管理画面の「設定 > 予約ページ」に表示されています。店舗IDは一度だけ変更でき、変更すると以前のURLは無効になります。"
+    },
+    {
+      "id": "faq-double-01",
+      "question": "ダブルブッキングが起きる原因は何ですか",
+      "source": "public_faq.md",
+      "must_contain": "手動で予約を追加",
+      "ground_truth": "管理画面からの手動追加が重複チェックの対象外であること、外部カレンダー連携の同期遅延、複数スタッフによる同時刻の同時編集の3つが既知の原因です。"
+    },
+    {
+      "id": "faq-remind-01",
+      "question": "リマインドメールが届かないとき、最初に確認することは何ですか",
+      "source": "public_faq.md",
+      "must_contain": "迷惑メール",
+      "ground_truth": "登録メールアドレスの誤り、迷惑メールフォルダ、通知設定の有効化、送信履歴の順に確認します。"
+    },
+    {
+      "id": "faq-remind-02",
+      "question": "送信履歴にバウンスと表示されている場合はどうすればよいですか",
+      "source": "public_faq.md",
+      "must_contain": "バウンス",
+      "ground_truth": "宛先が存在しないか受信拒否されているため、同じアドレスへ再送せず、顧客に直接連絡してアドレスを確認します。"
+    },
+    {
+      "id": "faq-sms-01",
+      "question": "SMSリマインドの料金はいくらですか",
+      "source": "public_faq.md",
+      "must_contain": "11円",
+      "ground_truth": "1通あたり11円が翌月に加算されます。スタンダードプラン以上で利用できます。"
+    },
+    {
+      "id": "faq-import-01",
+      "question": "顧客CSVインポートの必須列と文字コードを教えてください",
+      "source": "public_faq.md",
+      "must_contain": "UTF-8",
+      "ground_truth": "必須列は「氏名」と「電話番号」で、文字コードはUTF-8のみ対応しています。1回あたり5,000行が上限です。"
+    },
+    {
+      "id": "faq-cancel-01",
+      "question": "解約したあとデータはいつまで残りますか",
+      "source": "public_faq.md",
+      "must_contain": "90日",
+      "ground_truth": "解約後90日間はデータを保持し、同じアカウントで再契約すれば復元されます。90日を過ぎると完全に削除されます。"
+    },
+    {
+      "id": "faq-refund-01",
+      "question": "どのような場合に返金が認められますか",
+      "source": "public_faq.md",
+      "must_contain": "24時間以上",
+      "ground_truth": "24時間以上サービスを利用できなかった障害、二重請求、解約後の請求の3つの場合に、サポートの判断で日割り返金を行うことがあります。担当者が独断で金額を確定してはいけません。"
+    },
+    {
+      "id": "man-flow-01",
+      "question": "問い合わせ応対はどのような順序で進めますか",
+      "source": "support_manual.md",
+      "must_contain": "傾聴",
+      "ground_truth": "名乗りと受付、傾聴、事実確認、状況の要約、説明、合意、クロージングの順に進めます。"
+    },
+    {
+      "id": "man-fact-01",
+      "question": "不具合の問い合わせで必ず確認すべきことは何ですか",
+      "source": "support_manual.md",
+      "must_contain": "再現",
+      "ground_truth": "発生日時、操作した画面と手順、表示メッセージの有無と内容、他のスタッフや別端末で再現するかの4点です。"
+    },
+    {
+      "id": "man-esc-01",
+      "question": "どのような場合にサポート責任者へエスカレーションしますか",
+      "source": "support_manual.md",
+      "must_contain": "エスカレーション",
+      "ground_truth": "障害の疑い、返金や補償の要求、個人情報の開示請求、弁護士や消費生活センターからの連絡、法的措置への言及、システム不具合の疑い、2時間を超えても解決の見込みが立たない場合です。"
+    },
+    {
+      "id": "man-ban-01",
+      "question": "サポート担当者がしてはいけないことを教えてください",
+      "source": "support_manual.md",
+      "must_contain": "断定",
+      "ground_truth": "承認なしの返金回答、調査前の原因断定、根拠のない復旧見込みの提示、他社比較、本人確認前の顧客情報の開示などが禁止されています。"
+    },
+    {
+      "id": "man-auth-01",
+      "question": "本人確認では何を確認しますか",
+      "source": "support_manual.md",
+      "must_contain": "店舗ID",
+      "ground_truth": "契約時に登録したメールアドレスと、店舗IDまたは請求書番号の2点です。電話番号だけでは本人確認になりません。"
+    },
+    {
+      "id": "man-complaint-01",
+      "question": "苦情対応で気をつけることは何ですか",
+      "source": "support_manual.md",
+      "must_contain": "過失",
+      "ground_truth": "事実確認より先に受け止めを示し、原因が確定していない段階で過失を認めず、要求を復唱して確認し、補償や返金はその場で判断せずエスカレーションします。"
+    },
+    {
+      "id": "man-sla-01",
+      "question": "障害の疑いがある問い合わせの一次回答の目安は何分ですか",
+      "source": "support_manual.md",
+      "must_contain": "30分",
+      "ground_truth": "30分以内が目安です。"
+    },
+    {
+      "id": "man-outage-01",
+      "question": "障害発生時に顧客へ伝えてよいことは何ですか",
+      "source": "support_manual.md",
+      "must_contain": "ステータスページ",
+      "ground_truth": "調査中であること、影響範囲として分かっている事実、次に情報を出す時刻の3点です。復旧見込みは公式発表まで伝えません。"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 依存関係のインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pyflakes
+
+      - name: 静的チェック
+        run: python -m pyflakes app.py src scripts tests views
+
+      - name: テスト
+        # tests/test_no_secrets.py が秘密情報スキャンを兼ねている。
+        # 外部APIは呼ばないため、CIにシークレットの登録は不要。
+        run: python -m pytest
