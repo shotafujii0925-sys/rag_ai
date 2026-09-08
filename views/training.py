@@ -42,7 +42,13 @@ session = st.session_state.get("session")
 if not session:
     st.stop()
 
-scenario = find_scenario(st.session_state["scenario_id"], scenarios)
+try:
+    scenario = find_scenario(st.session_state["scenario_id"], scenarios)
+except ValueError as error:
+    show_error("このセッションのシナリオを読み込めませんでした。もう一度選び直してください。", error)
+    for key in ("session", "scenario_id", "report", "agent_message"):
+        st.session_state.pop(key, None)
+    st.stop()
 
 # --- 対話 ---------------------------------------------------------------------
 

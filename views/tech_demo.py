@@ -4,7 +4,8 @@ from views._shared import load_resources, setup, show_error
 from src.config import settings
 from src.rag.evaluator import context_precision, context_recall
 from src.rag.generator import answer_question, build_prompt
-from src.rag.loader import escape_for_display, load_json
+from src.rag.loader import escape_for_display, load_json, load_knowledge, read_bytes
+from src.rag.retriever import Retriever
 
 setup(
     "RAG技術デモ",
@@ -16,14 +17,50 @@ setup(
 retriever, scenarios, criteria = load_resources()
 config = settings()
 
+st.markdown("## 自分の文書を追加する")
+st.caption(
+    "手元の文書（.md / .txt / .html、最大"
+    f"{config.max_upload_mb}MB）を追加すると、同梱のFAQ・マニュアルと合わせて検索できます。"
+    "この端末のブラウザセッション内だけで有効で、他の利用者や「模擬対応」「評価」画面には影響しません。"
+)
+uploaded = st.file_uploader(
+    "文書を追加", type=["md", "txt", "html", "htm"], label_visibility="collapsed"
+)
+if uploaded is not None:
+    identity = (uploaded.name, uploaded.size)
+    if st.session_state.get("demo_upload_identity") != identity:
+        try:
+            document = read_bytes(uploaded.name, uploaded.getvalue())
+            with st.spinner("インデックスを再構築しています…"):
+                merged = [*load_knowledge(), document]
+                st.session_state["demo_retriever"] = Retriever(merged, use_embeddings=config.is_cloud)
+            st.session_state["demo_upload_identity"] = identity
+            st.session_state["demo_upload_name"] = document.name
+            st.session_state.pop("demo", None)
+            st.session_state.pop("eval_rows", None)
+        except ValueError as error:
+            show_error("文書を追加できませんでした。", error)
+            st.session_state.pop("demo_retriever", None)
+            st.session_state.pop("demo_upload_identity", None)
+
+if st.session_state.get("demo_retriever"):
+    left, right = st.columns([4, 1])
+    left.success(f"追加中: {st.session_state.get('demo_upload_name')}")
+    if right.button("削除する", use_container_width=True):
+        for key in ("demo_retriever", "demo_upload_identity", "demo_upload_name", "demo"):
+            st.session_state.pop(key, None)
+        st.rerun()
+
+active_retriever: Retriever = st.session_state.get("demo_retriever") or retriever
+
 st.markdown("## インデックス")
 columns = st.columns(4)
-columns[0].metric("参照文書", f"{len(retriever.sources)} 件")
-columns[1].metric("チャンク", f"{retriever.chunk_count}")
+columns[0].metric("参照文書", f"{len(active_retriever.sources)} 件")
+columns[1].metric("チャンク", f"{active_retriever.chunk_count}")
 columns[2].metric("チャンクサイズ", f"{config.chunk_size}")
 columns[3].metric("オーバーラップ", f"{config.chunk_overlap}")
 st.caption(
-    f"検索方式: {'ハイブリッド（BM25＋埋め込み）' if retriever.use_embeddings else 'BM25のみ'}"
+    f"検索方式: {'ハイブリッド（BM25＋埋め込み）' if active_retriever.use_embeddings else 'BM25のみ'}"
     f"／取得件数 top_k={config.top_k}／相対スコア下限={config.score_threshold}"
 )
 
@@ -40,8 +77,8 @@ if submitted and not question.strip():
 elif submitted:
     try:
         with st.spinner("検索しています…"):
-            result = retriever.retrieve(question, top_k=top_k, threshold=threshold)
-            answer = answer_question(question, retriever, top_k=top_k)
+            result = active_retriever.retrieve(question, top_k=top_k, threshold=threshold)
+            answer = answer_question(question, active_retriever, top_k=top_k)
         st.session_state["demo"] = {"result": result, "answer": answer}
     except Exception as error:
         show_error("検索に失敗しました。", error)
@@ -101,6 +138,8 @@ st.markdown("## 評価データセットで確かめる")
 st.caption(
     "data/eval/rag_eval_set.json のラベル付き質問に対して、検索が正しい文書を引けているかを確認します。"
     "モデルを呼ばないため、APIキーがなくても実行できます。"
+    "ラベルは同梱文書に対して作られているため、この評価は常に同梱文書だけを対象にします"
+    "（上で追加した文書は含みません）。"
 )
 
 if st.button("評価データセットを実行"):

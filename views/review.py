@@ -5,6 +5,7 @@ import streamlit as st
 from views._shared import load_resources, setup, show_error
 from src.conversation.persona import find_scenario
 from src.conversation.scoring import evaluate
+from src.rag.loader import escape_for_display
 
 setup(
     "評価",
@@ -27,7 +28,16 @@ if not session.get("finished"):
         st.switch_page("views/training.py")
     st.stop()
 
-scenario = find_scenario(st.session_state["scenario_id"], scenarios)
+try:
+    scenario = find_scenario(st.session_state["scenario_id"], scenarios)
+except ValueError as error:
+    show_error("このセッションのシナリオを読み込めませんでした。もう一度模擬対応をやり直してください。", error)
+    for key in ("session", "scenario_id", "report", "agent_message"):
+        st.session_state.pop(key, None)
+    if st.button("模擬対応へ"):
+        st.switch_page("views/training.py")
+    st.stop()
+
 report = st.session_state.get("report")
 
 if report is None:
@@ -48,7 +58,7 @@ columns[0].metric("平均", f"{report['average']} / 5")
 for column, item in zip(columns[1:], report["scores"]):
     column.metric(item["label"], f"{item['score']} / 5")
 
-st.markdown(f'<div class="card">{report["summary"]}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="card">{escape_for_display(report["summary"])}</div>', unsafe_allow_html=True)
 
 st.markdown("## 観点ごとの講評")
 for item in report["scores"]:
@@ -74,7 +84,7 @@ with st.expander("全文を表示"):
     for turn in session["transcript"]:
         role = "担当者" if turn["role"] == "agent" else "顧客"
         st.markdown(f"**{role}**")
-        st.markdown(f'<div class="plain">{turn["content"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="plain">{escape_for_display(turn["content"])}</div>', unsafe_allow_html=True)
 
 st.divider()
 left, right = st.columns(2)
