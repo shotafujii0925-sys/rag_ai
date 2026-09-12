@@ -150,7 +150,7 @@ sequenceDiagram
 ## 8. ディレクトリ構成
 
 ```text
-support-trainer/
+rag_ai/
 ├── app.py                        # Streamlit エントリポイント（ページ定義のみ）
 ├── src/                          # UIに依存しないコア
 │   ├── config.py                 # 環境変数の読み込みと検証
@@ -182,8 +182,8 @@ support-trainer/
 ## 9. セットアップ
 
 ```bash
-git clone <このリポジトリ>
-cd support-trainer
+git clone https://github.com/shotafujii0925-sys/rag_ai.git
+cd rag_ai
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
