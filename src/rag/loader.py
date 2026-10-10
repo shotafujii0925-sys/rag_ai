@@ -79,10 +79,13 @@ def decode(data: bytes) -> str:
     match = _CHARSET.search(data[:4096])
     if match:
         try:
-            return data.decode(match.group(1).decode("ascii"), errors="replace")
+            return data.decode(match.group(1).decode("ascii"))
         except LookupError:
             pass
-    return data.decode("utf-8", errors="replace")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise ValueError("ファイルの文字コードを読み取れません。UTF-8で保存し直してください。") from error
 
 
 def read_bytes(name: str, data: bytes) -> Document:

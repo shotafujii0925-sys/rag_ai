@@ -165,7 +165,26 @@ def test_split_respects_the_size_limit():
 
 def test_split_covers_the_whole_document():
     body = "".join(f"文{i}。" for i in range(300))
-    assert set(body) <= set("".join(split_text(body, chunk_size=250, overlap=50)))
+    chunks = split_text(body, chunk_size=250, overlap=50)
+    for i in range(300):
+        assert f"文{i}。" in "".join(chunks)
+
+
+@pytest.mark.parametrize("overlap", [0, 20, 80])
+def test_sentence_boundary_keeps_text_after_the_boundary(overlap):
+    body = "A" * 60 + "。" + "DROPPED-BLOCK-1234" + "B" * 100
+    chunks = split_text(body, chunk_size=100, overlap=overlap)
+    assert any("DROPPED-BLOCK-1234" in chunk for chunk in chunks)
+    assert len(chunks) < len(body)
+
+
+def test_plain_cp932_is_rejected_instead_of_silently_corrupted():
+    with pytest.raises(ValueError, match="UTF-8"):
+        read_bytes("faq.txt", "予約の確認手順です".encode("cp932"))
+
+
+def test_utf8_bom_is_removed():
+    assert read_bytes("faq.md", "本文".encode("utf-8-sig")).text == "本文"
 
 
 def test_split_prefers_a_sentence_boundary():

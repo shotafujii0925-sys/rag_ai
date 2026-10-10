@@ -78,7 +78,7 @@ elif submitted:
     try:
         with st.spinner("検索しています…"):
             result = active_retriever.retrieve(question, top_k=top_k, threshold=threshold)
-            answer = answer_question(question, active_retriever, top_k=top_k)
+            answer = answer_question(question, active_retriever, result=result)
         st.session_state["demo"] = {"result": result, "answer": answer}
     except Exception as error:
         show_error("検索に失敗しました。", error)

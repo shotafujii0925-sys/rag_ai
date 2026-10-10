@@ -50,7 +50,6 @@ def split_text(text: str, *, chunk_size: int | None = None, overlap: int | None 
     if len(body) <= size:
         return [body]
 
-    step = size - step_back
     chunks: list[str] = []
     start = 0
     while start < len(body):
@@ -65,7 +64,7 @@ def split_text(text: str, *, chunk_size: int | None = None, overlap: int | None 
             chunks.append(piece)
         if end >= len(body):
             break
-        start = max(start + step, end - step_back)
+        start = max(start + 1, end - step_back)
     return chunks
 
 

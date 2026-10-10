@@ -6,6 +6,7 @@ from views._shared import load_resources, setup, show_error
 from src.conversation.persona import find_scenario
 from src.conversation.scoring import evaluate
 from src.rag.loader import escape_for_display
+from src.rag.splitter import covers
 
 setup(
     "評価",
@@ -71,7 +72,7 @@ st.markdown("## 必須説明項目")
 transcript = " ".join(turn["content"] for turn in session["transcript"] if turn["role"] == "agent")
 st.dataframe(
     [
-        {"必須説明項目": item, "触れた": any(part in transcript for part in item.split("、"))}
+        {"必須説明項目": item, "触れた": covers(transcript, item)}
         for item in scenario.must_cover
     ]
     or [{"必須説明項目": "設定なし", "触れた": False}],

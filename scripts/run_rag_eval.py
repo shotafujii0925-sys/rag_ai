@@ -83,7 +83,7 @@ def run_condition(cases, documents, chunk_size, overlap, top_k, with_generation)
 
         if with_generation:
             try:
-                answer = answer_question(case["question"], retriever, top_k=top_k)
+                answer = answer_question(case["question"], retriever, result=result)
                 if answer.passages:
                     contexts = [passage.text for passage in answer.passages]
                     row["faithfulness"] = faithfulness(answer.text, contexts)["score"]

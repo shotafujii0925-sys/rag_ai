@@ -162,6 +162,8 @@ class Retriever:
             combined = lexical
             method = "bm25"
 
+        peak = max(combined, default=0.0)
+        combined = [score / peak for score in combined] if peak > 0 else combined
         ranked = sorted(range(len(self.chunks)), key=lambda i: combined[i], reverse=True)
         passages = [
             Passage(
@@ -171,7 +173,7 @@ class Retriever:
                 excerpt=excerpt_for(question, self.chunks[index].text),
             )
             for index in ranked[:limit]
-            if combined[index] > floor
+            if combined[index] > 0 and combined[index] >= floor
         ]
         return RetrievalResult(
             query=question,

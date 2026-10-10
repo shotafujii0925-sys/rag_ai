@@ -12,11 +12,10 @@ from typing import Any
 from ..config import settings
 from ..rag.loader import load_json
 from ..rag.splitter import covers
-from .persona import Scenario
+from .persona import Scenario, asked_question
 from .session import agent_turns
 
 SENTENCE_SPLIT = re.compile(r"[。！？\n]")
-QUESTION_MARK = re.compile(r"[?？]|ますか|でしょうか|ですか")
 
 SCORING_SYSTEM = (
     "あなたはカスタマーサポート研修の評価者です。"
@@ -66,7 +65,7 @@ def _score_question(session: dict[str, Any]) -> tuple[int, str]:
     turns = agent_turns(session)
     if not turns:
         return 1, "担当者の発話が記録されていません。"
-    asked = sum(1 for turn in turns if QUESTION_MARK.search(turn))
+    asked = sum(1 for turn in turns if asked_question(turn))
     ratio = asked / len(turns)
     score = _clamp(1 + 4 * min(1.0, ratio / 0.5))
     return score, f"{len(turns)}回の発話のうち{asked}回で確認の質問をしています。"
@@ -187,5 +186,13 @@ def evaluate(
         raise ValueError("対話を終了してから評価してください。")
     rules = criteria if criteria is not None else load_criteria()
     if settings().is_cloud:
-        return score_with_model(session, scenario, rules)
+        try:
+            return score_with_model(session, scenario, rules)
+        except Exception as error:
+            from ..errors import log_error
+
+            log_error("AI採点をルールベースへ切り替え", error)
+            fallback = score_locally(session, scenario, rules)
+            fallback["note"] = "AI採点に失敗したため、ルールベースの採点を表示しています。"
+            return fallback
     return score_locally(session, scenario, rules)

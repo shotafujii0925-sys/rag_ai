@@ -8,7 +8,7 @@ the log, because a screenshot of this app could otherwise leak configuration.
 import logging
 import re
 
-from .config import ConfigError
+from .config import ConfigError, settings
 
 logger = logging.getLogger("support_trainer")
 
@@ -41,6 +41,9 @@ _BY_TYPE = {
 
 def redact(text: str) -> str:
     cleaned = str(text or "")
+    key = settings().api_key
+    if key:
+        cleaned = cleaned.replace(key, "[redacted-key]")
     for pattern, replacement in _REDACTIONS:
         cleaned = pattern.sub(replacement, cleaned)
     return cleaned
