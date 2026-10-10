@@ -82,11 +82,17 @@ def _local_answer(result: RetrievalResult) -> str:
 
 
 def answer_question(
-    question: str, retriever: Retriever, *, top_k: int | None = None
+    question: str, retriever: Retriever, *, top_k: int | None = None,
+    threshold: float | None = None, result: RetrievalResult | None = None
 ) -> Answer:
     config = settings()
     started = time.perf_counter()
-    result = retriever.retrieve(question, top_k=top_k)
+    if result is None:
+        result = retriever.retrieve(question, top_k=top_k, threshold=threshold)
+    else:
+        if result.query != str(question or "").strip():
+            raise ValueError("質問と検索結果が一致しません。")
+        started -= result.elapsed_ms / 1000
 
     if result.is_empty:
         return Answer(

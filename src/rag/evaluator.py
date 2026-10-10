@@ -1,9 +1,10 @@
 """RAG quality metrics.
 
-The four metrics follow the RAGAS definitions, implemented here directly rather
-than through the library. Two reasons: the judging prompts stay readable and
-reviewable in this repository, and the retrieval-side metrics can then be
-computed from labels with no API key and no cost.
+The four metrics are inspired by RAGAS, implemented here rather than through
+the library. Retrieval-side metrics are label/token approximations: context
+precision is a fraction of relevant passages, not rank-weighted average
+precision. The judging prompts stay readable and the offline metrics cost no
+API calls. Their values are not interchangeable with RAGAS output.
 
 Each result carries `method` so a report can never be mistaken for something it
 was not: "llm" means a model scored it, "label" means it came from the labelled

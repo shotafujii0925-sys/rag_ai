@@ -19,7 +19,7 @@ from ..rag.loader import load_json
 from ..rag.splitter import covers
 
 GUESS_WORDS = ("たぶん", "多分", "おそらく", "と思います", "はずです", "かもしれません", "気がします")
-QUESTION_PATTERN = re.compile(r"[?？]|ますか|でしょうか|ですか|ますでしょうか")
+QUESTION_PATTERN = re.compile(r"[?？]|(?:ますか|でしょうか|ですか)(?=[\s。！!」』]|$)")
 
 DEFAULT_STYLE = "anxious"
 

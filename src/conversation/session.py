@@ -59,24 +59,25 @@ def add_turn(
         raise ValueError("対話が長くなりすぎました。一度終了して評価に進んでください。")
 
     text = validate_message(message)
-    session["transcript"].append({"role": AGENT, "content": text})
+    pending_transcript = [*session["transcript"], {"role": AGENT, "content": text}]
 
     result = retriever.retrieve(f"{scenario.title} {text}")
-    session["retrieval_log"].append(
-        {
-            "query": result.query,
-            "method": result.method,
-            "elapsed_ms": round(result.elapsed_ms, 1),
-            "passages": [passage.as_dict() for passage in result.passages],
-        }
-    )
+    retrieval_entry = {
+        "query": result.query,
+        "method": result.method,
+        "elapsed_ms": round(result.elapsed_ms, 1),
+        "passages": [passage.as_dict() for passage in result.passages],
+    }
 
     if settings().is_cloud:
-        reply = generate_reply(scenario, session["transcript"], build_context(result.passages))
+        reply = generate_reply(scenario, pending_transcript, build_context(result.passages))
     else:
-        reply = local_reply(scenario, agent_turns(session), text)
+        reply = local_reply(scenario, [*agent_turns(session), text], text)
 
-    session["transcript"].append({"role": CUSTOMER, "content": reply})
+    session["transcript"].extend([
+        {"role": AGENT, "content": text}, {"role": CUSTOMER, "content": reply}
+    ])
+    session["retrieval_log"].append(retrieval_entry)
     return reply
 
 
